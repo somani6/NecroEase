@@ -1,13 +1,25 @@
 ﻿/// <reference path="../../external/typings/jquery/jquery.d.ts" />
 /// <reference path="../../external/typings/lodash/lodash.d.ts" />
-/// <reference path="../../external/typings/openlayers.d.ts" />
+/// <reference path="../../external/typings/leaflet/leaflet.d.ts" />
 
 $(() => {
-    //var gmap = new GoogleMap($());
-    var ol = new OpenLayersMap("map");
-    var interfaceHandler = new InterfaceHandler(ol);
-    var necroClient = new NecroWSClient("ws://127.0.0.1:14252");
-    var runner = new Runner(necroClient, interfaceHandler);
+    const translationManager = new TranslationManager();
+    const notificationManager = new NotificationManager({
+        container: $(".items"),
+        clearAllButton: $(".clear-all"),
+        translationManager: translationManager
+    });
+    const lMap = new LeafletMap({
+        followPlayer: true,
+        translationManager: translationManager
+    });
+    const interfaceHandler = new InterfaceHandler({
+        map: lMap,
+        translationManager: translationManager,
+        notificationManager: notificationManager
+    });
+    const necroClient = new NecroWSClient("ws://127.0.0.1:14252");
+    const runner = new Runner(necroClient, interfaceHandler);
     runner.start();
 });
 
