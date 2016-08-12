@@ -42,7 +42,16 @@ var NecroWSClient = (function () {
             }
             else if (_.includes(type, "PokemonCaptureEvent")) {
                 var pokemonCapture_1 = message;
+                pokemonCapture_1.IsSnipe = _this.currentlySniping;
                 _.each(_this.config.eventHandlers, function (eh) { return eh.onPokemonCapture(pokemonCapture_1); });
+            }
+            else if (_.includes(type, "EvolveCountEvent")) {
+                var evolveCount_1 = message;
+                _.each(_this.config.eventHandlers, function (eh) { return eh.onEvolveCount(evolveCount_1); });
+            }
+            else if (_.includes(type, "PokemonEvolveEvent")) {
+                var pokemonEvolve_1 = message;
+                _.each(_this.config.eventHandlers, function (eh) { return eh.onPokemonEvolve(pokemonEvolve_1); });
             }
             else if (_.includes(type, "SnipeScanEvent")) {
                 var snipeScan_1 = message;
@@ -50,6 +59,7 @@ var NecroWSClient = (function () {
             }
             else if (_.includes(type, "SnipeModeEvent")) {
                 var snipeMode_1 = message;
+                _this.currentlySniping = snipeMode_1.Active;
                 _.each(_this.config.eventHandlers, function (eh) { return eh.onSnipeMode(snipeMode_1); });
             }
             else if (_.includes(type, "SnipeEvent")) {
@@ -110,6 +120,7 @@ var NecroWSClient = (function () {
             return currency.Amount;
         };
         this.url = url;
+        this.currentlySniping = false;
     }
     return NecroWSClient;
 }());
@@ -176,6 +187,10 @@ var InterfaceHandler = (function () {
             this.config.notificationManager.addNotificationPokemonCapture(pokemonCapture);
         }
     };
+    InterfaceHandler.prototype.onEvolveCount = function (pokemonCapture) {
+    };
+    InterfaceHandler.prototype.onPokemonEvolve = function (pokemonCapture) {
+    };
     InterfaceHandler.prototype.onSnipeScan = function (snipeScan) {
     };
     InterfaceHandler.prototype.onSnipeMode = function (snipeMode) {
@@ -191,11 +206,32 @@ var InterfaceHandler = (function () {
     InterfaceHandler.prototype.onIncubatorStatus = function (incubatorStatus) {
     };
     InterfaceHandler.prototype.onItemRecycle = function (itemRecycle) {
+        this.config.notificationManager.addNotificationItemRecycle(itemRecycle);
     };
     InterfaceHandler.prototype.onPokemonTransfer = function (pokemonTransfer) {
         this.config.notificationManager.addNotificationPokemonTransfer(pokemonTransfer);
     };
     return InterfaceHandler;
+}());
+var InventoryInfo = (function () {
+    function InventoryInfo() {
+    }
+    InventoryInfo.__ctor = (function () {
+        var itemNames = [];
+        itemNames[1] = "ItemPokeBall";
+        itemNames[2] = "ItemGreatBall";
+        itemNames[3] = "ItemUltraBall";
+        itemNames[4] = "ItemMasterBall";
+        itemNames[101] = "ItemPotion";
+        itemNames[102] = "ItemSuperPotion";
+        itemNames[103] = "ItemHyperPotion";
+        itemNames[104] = "ItemMaxPotion";
+        itemNames[201] = "ItemRevive";
+        itemNames[202] = "ItemMaxRevive";
+        itemNames[701] = "ItemRazzBerry";
+        InventoryInfo.itemNames = itemNames;
+    })();
+    return InventoryInfo;
 }());
 var LeafletMap = (function () {
     function LeafletMap(config) {
@@ -322,6 +358,15 @@ var PokemonCatchStatus;
     PokemonCatchStatus[PokemonCatchStatus["Escape"] = 2] = "Escape";
     PokemonCatchStatus[PokemonCatchStatus["Flee"] = 3] = "Flee";
 })(PokemonCatchStatus || (PokemonCatchStatus = {}));
+var PokemonEvolveResult;
+(function (PokemonEvolveResult) {
+    PokemonEvolveResult[PokemonEvolveResult["Unset"] = 0] = "Unset";
+    PokemonEvolveResult[PokemonEvolveResult["Success"] = 1] = "Success";
+    PokemonEvolveResult[PokemonEvolveResult["FailedPokemonMissing"] = 2] = "FailedPokemonMissing";
+    PokemonEvolveResult[PokemonEvolveResult["FailedInsufficientResources"] = 3] = "FailedInsufficientResources";
+    PokemonEvolveResult[PokemonEvolveResult["FailedPokemonCannotEvolve"] = 4] = "FailedPokemonCannotEvolve";
+    PokemonEvolveResult[PokemonEvolveResult["FailedPokemonIsDeployed"] = 5] = "FailedPokemonIsDeployed";
+})(PokemonEvolveResult || (PokemonEvolveResult = {}));
 var PlayerTeam;
 (function (PlayerTeam) {
     PlayerTeam[PlayerTeam["Instinct"] = 0] = "Instinct";
@@ -337,7 +382,7 @@ var NotificationManager = (function () {
             _.each(_this.notifications.reverse(), function (notification) {
                 notification.element.delay(delay).slideUp(300), function () {
                     element.remove();
-                    _this.notifications = _.remove(_this.notifications, function (n) { return n.element === element; });
+                    _.remove(_this.notifications, function (n) { return n.element.is(element); });
                 };
                 delay += 50;
             });
@@ -353,7 +398,8 @@ var NotificationManager = (function () {
         };
         this.addNotificationPokemonCapture = function (pokemonCatch) {
             var pokemonName = _this.config.translationManager.translation.pokemonNames[pokemonCatch.Id];
-            var html = "<div class=\"event catch\">\n                        <i class=\"fa fa-times dismiss\"></i>\n                        <div class=\"image\">\n                            <img src=\"images/pokemon/" + pokemonCatch.Id + ".png\"/>\n                        </div>\n                        <div class=\"info\">\n                            " + pokemonName + "\n                            <div class=\"stats\">CP " + pokemonCatch.Cp + " | IV " + pokemonCatch.Perfection + "%</div>\n                        </div>\n                        <span class=\"event-type\">catch</span>\n                        <span class=\"timestamp\">0 seconds ago</span>\n                        <div class=\"category\"></div>\n                    </div>";
+            var snipestr = pokemonCatch.IsSnipe ? "snipe" : "catch";
+            var html = "<div class=\"event " + snipestr + "\">\n                        <i class=\"fa fa-times dismiss\"></i>\n                        <div class=\"image\">\n                            <img src=\"images/pokemon/" + pokemonCatch.Id + ".png\"/>\n                        </div>\n                        <div class=\"info\">\n                            " + pokemonName + "\n                            <div class=\"stats\">CP " + pokemonCatch.Cp + " | IV " + pokemonCatch.Perfection + "%</div>\n                        </div>\n                        <span class=\"event-type\">" + snipestr + "</span>\n                        <span class=\"timestamp\">0 seconds ago</span>\n                        <div class=\"category\"></div>\n                    </div>";
             var element = $(html);
             _this.addNotificationFinal({
                 element: element,
@@ -370,6 +416,15 @@ var NotificationManager = (function () {
             _this.addNotificationFinal({
                 element: element,
                 event: fortUsed
+            });
+        };
+        this.addNotificationItemRecycle = function (itemRecycle) {
+            var itemName = InventoryInfo.itemNames[itemRecycle.Id];
+            var html = "<div class=\"event recycle\">\n                        <i class=\"fa fa-times dismiss\"></i>\n                        <div class=\"info\">\n                            <div class=\"item\"><img src=\"images/items/" + itemName + ".png\"/>x" + itemRecycle.Count + "</div>\n                            <div class=\"stats\">+" + itemRecycle.Count + " free space</div>\n                        </div>\n                        <span class=\"event-type\">recycle</span>\n                        <span class=\"timestamp\">0 seconds ago</span>\n                        <div class=\"category\"></div>\n                    </div>";
+            var element = $(html);
+            _this.addNotificationFinal({
+                element: element,
+                event: itemRecycle
             });
         };
         this.addNotificationPokemonTransfer = function (pokemonTransfer) {
@@ -395,7 +450,7 @@ var NotificationManager = (function () {
             var element = $(ev.target);
             element.closest(".event").slideUp(300, function () {
                 element.remove();
-                _this.notifications = _.remove(_this.notifications, function (n) { return n.element === element; });
+                _.remove(_this.notifications, function (n) { return n.element.is(element); });
             });
         };
         this.config = config;

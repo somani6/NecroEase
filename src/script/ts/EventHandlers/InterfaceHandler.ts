@@ -73,6 +73,14 @@
         }
     }
 
+    public onEvolveCount(pokemonCapture: IEvolveCountEvent): void {
+        
+    }
+
+    public onPokemonEvolve(pokemonCapture: IPokemonEvolveEvent): void {
+        
+    }
+
     public onSnipeScan(snipeScan: ISnipeScanEvent): void {
         
     }
@@ -102,7 +110,7 @@
     }
 
     public onItemRecycle(itemRecycle: IItemRecycleEvent): void {
-        
+        this.config.notificationManager.addNotificationItemRecycle(itemRecycle);
     }
 
     public onPokemonTransfer(pokemonTransfer: IPokemonTransferEvent): void {
